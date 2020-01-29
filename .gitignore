@@ -1,0 +1,12 @@
+#Mac Stuff
+.DS_Store
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+#Dummy Intermediate Txt Files
+z.txt
+D.txt
+
+#Dask Stuff
+dask-worker-space/
