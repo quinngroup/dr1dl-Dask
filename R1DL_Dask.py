@@ -1,6 +1,7 @@
 import argparse
 import numpy as np
 import os.path
+import cupy as cp
 import scipy.linalg as sla
 import sys
 import datetime
@@ -61,13 +62,17 @@ if __name__ == "__main__":
 
     #Add Comment
     client = Client()
-    conf.set("spark.executor.memory", args['execmem'])
-    
-    chunks = args['chunks'] if args['chunks'] is not None else (4 * sc.defaultParallelism)
+
+
+    chunks = args['chunks'] #if args['chunks'] is not 'auto' else (4 * sc.defaultParallelism)
 
     # Read the data and convert it into a Dask Array.
-    raw_data = db.read_text(args['input'])
-    S = da.from_array(raw_data, chunks=chunks)
+    raw_data = db.read_text(args['input']) \
+            .str.strip() \
+            .str.split() \
+            .map(np.float32) \
+            .map(cp.array)
+    S = da.stack(raw_data, chunks=chunks)
     if args['normalize']:
         S -= S.mean()
         S /= sla.norm(S)
