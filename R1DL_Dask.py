@@ -43,9 +43,9 @@ if __name__ == "__main__":
         help = "If set, turns out debug output.")
 
     # Dask options.
-    parser.add_argument("--chunks", type = int, default = 'auto',
-        help = "Number of RDD partitions to use. [DEFAULT: 4 * CPUs]")
-    parser.add_argument("--execmem", default = "8g",
+    parser.add_argument("--chunks", action = "store_true",
+        help = "If set, then chucks will be (1,cols). If not, chucks is 'auto'")
+    #parser.add_argument("--execmem", default = "8g",
         help = "Amount of memory for each executor. [DEFAULT: 8g]")
 
     # Outputs.
@@ -64,13 +64,13 @@ if __name__ == "__main__":
     client = Client()
 
 
-    chunks = args['chunks'] #if args['chunks'] is not 'auto' else (4 * sc.defaultParallelism)
+    chunks = (1,cols) if args['chunks'] is not True else 'auto'
 
     # Read the data and convert it into a Dask Array.
     raw_data = db.read_text(args['input']) \
             .str.strip() \
             .str.split() \
-            .map(np.float32) \
+            .map(np.float) \
             .map(cp.array)
     S = da.stack(raw_data, chunks=chunks)
     if args['normalize']:
@@ -121,11 +121,11 @@ if __name__ == "__main__":
         # Start the inner loop: this learns a single atom.
         while num_iterations < max_iterations and delta > epsilon:
             _U_ = client.scatter(u_old, broadcast=True)
-            v = da.dot(_U_.result(),S) #May get an error here because S may be a future instead of a dask array
+            v = da.dot(_U_.result(),S)
 
             #Grab the indices and data of the top R values in v for the sparse vector
             indices = np.sort(v.argtopk(R,axis=0))
-            data = v[indices].compute()  #Do I need to delete any of these intermediate variables?
+            data = v[indices].compute()  
 
             #let's make the sparse vector.
             sv = sparse.COO(indices,data,shape=(P),sorted=True)
