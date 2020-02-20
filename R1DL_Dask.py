@@ -18,6 +18,23 @@ import dask.array as da
 
 
 
+def load_data(path, chunks):
+
+    raw_bag = db.read_text(path) \
+                .str.strip() \
+                .str.split() \
+                .map(np.float) \
+                .map(cp.array)
+
+    return da.stack(raw_bag, chunks=chunks)
+
+def normalize(dask_array):
+
+    dask_array -= dask_array.mean()
+    dask_array /= sla.norm(dask_array, axis=0)
+    return dask_array
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description = 'Dask Dictionary Learning',
         add_help = 'How to use', prog = 'python R1DL_DASK.py <args>')
@@ -63,19 +80,14 @@ if __name__ == "__main__":
     #Add Comment
     client = Client()
 
-
-    chunks = (1,cols) if args['chunks'] is not True else 'auto'
+    #Ensuring each chunk of data be atleast one full row will make row and column
+    #wise operations easier. 
+    chunks = (1,cols) if args['chunks'] is True else 'auto'
 
     # Read the data and convert it into a Dask Array.
-    raw_data = db.read_text(args['input']) \
-            .str.strip() \
-            .str.split() \
-            .map(np.float) \
-            .map(cp.array)
-    S = da.stack(raw_data, chunks=chunks)
+    S = load_data(args['input'], chunks)
     if args['normalize']:
-        S -= S.mean()
-        S /= sla.norm(S)
+        S = normalize(S)
 
 
     ##################################################################
@@ -103,7 +115,7 @@ if __name__ == "__main__":
 
     # Start the loop!
     for m in range(M):
-        #Add a note here. But ask Quinn if this is the best thing to do
+        #Let us randomly generate a integer, broadcast that int, and create a seed.
         seed = np.random.randint(max_iterations + 1, high = 4294967295)
         _SEED_ = client.scatter(seed, broadcast=True)
         np.random.seed(seed)
@@ -111,8 +123,7 @@ if __name__ == "__main__":
         #Create a dense random vector
         #Then subtracting off the mean an normalizing it
         u_old = da.random.random(T)
-        u_old -= u_old.mean()
-        u_old /= sla.norm(u_old, axis = 0)
+        u_old = normalize(u_old)
 
         #Setting loop criteria
         num_iterations = 0
@@ -125,7 +136,7 @@ if __name__ == "__main__":
 
             #Grab the indices and data of the top R values in v for the sparse vector
             indices = np.sort(v.argtopk(R,axis=0))
-            data = v[indices].compute()  
+            data = v[indices].compute()
 
             #let's make the sparse vector.
             sv = sparse.COO(indices,data,shape=(P),sorted=True)
@@ -137,11 +148,8 @@ if __name__ == "__main__":
             # P1: Matrix-vector multiplication step. Computes u.
             u_new = da.dot(S,_V_.result())
 
-
             # Subtract off the mean and normalize.
-            u_new -= u_new.mean()
-            u_new /= sla.norm(u_new,axis = 0)
-            u_new = u_new.compute()
+            u_new = normalize(u_new).compute()
 
             # Update for the next iteration.
             delta = sla.norm(u_old - u_new) #Should u_old be _U_?
@@ -160,7 +168,6 @@ if __name__ == "__main__":
         # P4: Deflation step. Update the primary data matrix S.
         _U_ = client.scatter(u_new, broadcast=True)
         _V_ = client.scatter(sv, broadcast=True)
-
 
 
         if args['debug']: print(m)
