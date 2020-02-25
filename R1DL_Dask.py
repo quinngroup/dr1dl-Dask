@@ -63,7 +63,7 @@ if __name__ == "__main__":
     parser.add_argument("--chunks", action = "store_true",
         help = "If set, then chucks will be (1,cols). If not, chucks is 'auto'")
     #parser.add_argument("--execmem", default = "8g",
-        help = "Amount of memory for each executor. [DEFAULT: 8g]")
+    #    help = "Amount of memory for each executor. [DEFAULT: 8g]")
 
     # Outputs.
     parser.add_argument("-d", "--dictionary", required = True,
@@ -81,7 +81,7 @@ if __name__ == "__main__":
     client = Client()
 
     #Ensuring each chunk of data be atleast one full row will make row and column
-    #wise operations easier. 
+    #wise operations easier.
     chunks = (1,cols) if args['chunks'] is True else 'auto'
 
     # Read the data and convert it into a Dask Array.
