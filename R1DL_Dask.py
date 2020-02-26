@@ -82,7 +82,7 @@ if __name__ == "__main__":
 
     #Ensuring each chunk of data be atleast one full row will make row and column
     #wise operations easier.
-    chunks = (1,cols) if args['chunks'] is True else 'auto'
+    chunks = (1, args['cols']) if args['chunks'] is True else 'auto'
 
     # Read the data and convert it into a Dask Array.
     S = load_data(args['input'], chunks)
@@ -132,7 +132,7 @@ if __name__ == "__main__":
         # Start the inner loop: this learns a single atom.
         while num_iterations < max_iterations and delta > epsilon:
             _U_ = client.scatter(u_old, broadcast=True)
-            v = da.dot(_U_.result(),S)
+            v = da.matmul(_U_.result(),S)
 
             #Grab the indices and data of the top R values in v for the sparse vector
             indices = np.sort(v.argtopk(R,axis=0))
@@ -146,7 +146,7 @@ if __name__ == "__main__":
             _V_ = client.scatter(sv,broadcast=True)
 
             # P1: Matrix-vector multiplication step. Computes u.
-            u_new = da.dot(S,_V_.result())
+            u_new = da.matmul(S,_V_.result())
 
             # Subtract off the mean and normalize.
             u_new = normalize(u_new).compute()
