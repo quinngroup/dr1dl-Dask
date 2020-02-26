@@ -26,7 +26,7 @@ def load_data(path, chunks):
                 .map(np.float) \
                 .map(cp.array)
 
-    return da.stack(raw_bag, chunks=chunks)
+    return da.stack(raw_bag)
 
 def normalize(dask_array):
 
