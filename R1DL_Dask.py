@@ -20,7 +20,7 @@ import dask.array as da
 
 def load_data(path, chunks):
 
-    raw_bag = db.read_text(path) \
+    raw_bag = read_text(path) \
                 .str.strip() \
                 .str.split() \
                 .map(np.float) \
