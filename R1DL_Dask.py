@@ -104,7 +104,7 @@ if __name__ == "__main__":
 
     epsilon = args['epsilon']       # convergence stopping criterion
     M = args['dictatoms']            # dimensionality of the learned dictionary
-    R = args['pnonzero'] * P        # enforces sparsity
+    R = int(args['pnonzero'] * P)        # enforces sparsity
     u_new = da.zeros(T)
     v = da.zeros(P)
 
