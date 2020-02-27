@@ -25,7 +25,7 @@ def load_data(path, chunks):
                 .str.strip() \
                 .map(row_to_numpy)
 
-    return da.stack(raw_bag,axis=0).map(cp.array)
+    return da.stack(raw_bag,axis=0).map_blocks(cp.array)
 
 def normalize(dask_array):
 
