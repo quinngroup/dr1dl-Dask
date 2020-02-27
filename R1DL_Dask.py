@@ -132,9 +132,9 @@ if __name__ == "__main__":
         while num_iterations < max_iterations and delta > epsilon:
             _U_ = client.scatter(u_old, broadcast=True)
             v = da.matmul(_U_.result(),S)
-            
+
             #Grab the indices and data of the top R values in v for the sparse vector
-            indices = v.argtopk(R,axis=0)
+            indices = v.argtopk(R,axis=0).compute()
             print('made it here')
             data = v[indices].compute()
 
