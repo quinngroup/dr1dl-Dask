@@ -2,7 +2,6 @@ import argparse
 import numpy as np
 import os.path
 import cupy as cp
-import scipy.linalg as sla
 import sys
 import datetime
 import os
@@ -16,22 +15,22 @@ from dask.distributed import Client
 from dask.bag import read_text
 import dask.array as da
 
+def row_to_numpy(row):
 
+    return np.array([np.float(x) for x in row.split()])
 
 def load_data(path, chunks):
 
     raw_bag = read_text(path) \
                 .str.strip() \
-                .str.split() \
-                .map(np.float) \
-                .map(cp.array)
+                .map(row_to_numpy)
 
-    return da.stack(raw_bag)
+    return da.stack(raw_bag,axis=0).map(cp.array)
 
 def normalize(dask_array):
 
     dask_array -= dask_array.mean()
-    dask_array /= sla.norm(dask_array, axis=0)
+    dask_array /= da.linalg.norm(dask_array)
     return dask_array
 
 
@@ -81,7 +80,7 @@ if __name__ == "__main__":
     client = Client()
 
     #Ensuring each chunk of data be atleast one full row will make row and column
-    #wise operations easier.
+    #wise operations easier. Hasnt been used yet.....
     chunks = (1, args['cols']) if args['chunks'] is True else 'auto'
 
     # Read the data and convert it into a Dask Array.
@@ -152,7 +151,7 @@ if __name__ == "__main__":
             u_new = normalize(u_new).compute()
 
             # Update for the next iteration.
-            delta = sla.norm(u_old - u_new) #Should u_old be _U_?
+            delta = da.linalg.norm(u_old - u_new) #Should u_old be _U_?
             u_old = u_new
             num_iterations += 1
 
@@ -172,7 +171,7 @@ if __name__ == "__main__":
 
         if args['debug']: print(m)
 
-        S -= da.core.blockwise(operator.mul, 'ij', _U_.result(), 'i', _V_.result(), 'j', dtype='f8')
+        S -= da.core.blockwise(operator.mul, 'ij', _U_.result(), 'i', _V_.result(), 'j', dtype='f64')
         S.persist()
 
     if args['debug']: print(datetime.datetime.now())
