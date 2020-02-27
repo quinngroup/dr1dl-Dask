@@ -137,10 +137,11 @@ if __name__ == "__main__":
             indices = v.argtopk(R,axis=0)
             data = v[indices].compute()
 
+            print('making the sparse vector')
             #let's make the sparse vector.
             sv = sparse.COO(indices,data,shape=(P),sorted=False)
             sv = da.from_array(sv)
-
+            print('made the sparse vector')
             # Broadcast the sparse vector.
             _V_ = client.scatter(sv,broadcast=True)
 
