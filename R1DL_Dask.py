@@ -134,11 +134,11 @@ if __name__ == "__main__":
             v = da.matmul(_U_.result(),S)
 
             #Grab the indices and data of the top R values in v for the sparse vector
-            indices = np.sort(v.argtopk(R,axis=0))
+            indices = v.argtopk(R,axis=0)
             data = v[indices].compute()
 
             #let's make the sparse vector.
-            sv = sparse.COO(indices,data,shape=(P),sorted=True)
+            sv = sparse.COO(indices,data,shape=(P),sorted=False)
             sv = da.from_array(sv)
 
             # Broadcast the sparse vector.
