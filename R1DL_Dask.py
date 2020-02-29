@@ -124,7 +124,7 @@ if __name__ == "__main__":
         #Then subtracting off the mean an normalizing it
         u_old = da.random.random(T)
         u_old = normalize(u_old).compute()
-
+        print(u_old)
         #Setting loop criteria
         num_iterations = 0
         delta = 2 * epsilon
@@ -134,6 +134,7 @@ if __name__ == "__main__":
             try:
                 _U_ = client.scatter(u_old, broadcast=True)
                 print('made it here')
+                print(_U_.result())
                 v = da.matmul(_U_.result(),S).compute()
             except:
                 exit('you still gotta figure it out')
