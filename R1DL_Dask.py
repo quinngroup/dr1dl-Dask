@@ -135,7 +135,7 @@ if __name__ == "__main__":
                 _U_ = client.scatter(u_old, broadcast=True)
                 print('made it here')
                 print(_U_.result())
-                v = da.matmul(_U_.result(),S).compute()
+                v = da.dot(_U_.result(),S).compute()
             except:
                 exit('you still gotta figure it out')
             #Grab the indices of the top R values in v for the sparse vector
