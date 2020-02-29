@@ -135,7 +135,8 @@ if __name__ == "__main__":
                 _U_ = client.scatter(u_old, broadcast=True)
                 print('made it here')
                 v = da.matmul(_U_.result(),S).compute()
-
+            except:
+                exit('you still gotta figure it out')
             #Grab the indices of the top R values in v for the sparse vector
             indices = np.argpartition(v, -R)[-R:]
 
