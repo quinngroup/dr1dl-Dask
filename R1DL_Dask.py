@@ -123,7 +123,7 @@ if __name__ == "__main__":
         #Create a dense random vector
         #Then subtracting off the mean an normalizing it
         u_old = da.random.random(T)
-        u_old = normalize(u_old)
+        u_old = normalize(u_old).compute()
 
         #Setting loop criteria
         num_iterations = 0
