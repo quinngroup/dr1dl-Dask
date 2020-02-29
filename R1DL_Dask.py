@@ -14,6 +14,7 @@ from scipy.sparse import coo_matrix
 from dask.distributed import Client
 from dask.bag import read_text
 import dask.array as da
+import distributed
 
 def row_to_numpy(row):
 
@@ -130,12 +131,14 @@ if __name__ == "__main__":
 
         # Start the inner loop: this learns a single atom.
         while num_iterations < max_iterations and delta > epsilon:
-            _U_ = client.scatter(u_old, broadcast=True)
-            v = da.matmul(_U_.result(),S).compute()
-            print('made it here')
-            #Grab the indices and data of the top R values in v for the sparse vector
+            try:
+                _U_ = client.scatter(u_old, broadcast=True)
+                print('made it here')
+                v = da.matmul(_U_.result(),S).compute()
+
+            #Grab the indices of the top R values in v for the sparse vector
             indices = np.argpartition(v, -R)[-R:]
-            
+
             #data = v[indices]
 
             print('making the sparse vector')
