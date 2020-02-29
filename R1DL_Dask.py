@@ -131,16 +131,16 @@ if __name__ == "__main__":
         # Start the inner loop: this learns a single atom.
         while num_iterations < max_iterations and delta > epsilon:
             _U_ = client.scatter(u_old, broadcast=True)
-            v = da.matmul(_U_.result(),S)
+            v = da.matmul(_U_.result(),S).compute()
 
             #Grab the indices and data of the top R values in v for the sparse vector
-            indices = v.argtopk(R,axis=0).compute()
+            indices = np.argpartition(v, -R)[-R:]
             print('made it here')
-            data = v[indices].compute()
+            #data = v[indices]
 
             print('making the sparse vector')
             #let's make the sparse vector.
-            sv = sparse.COO(indices,data,shape=(P),sorted=False)
+            sv = sparse.COO(v[indices],data,shape=(P),sorted=False)
             sv = da.from_array(sv)
             print('made the sparse vector')
             # Broadcast the sparse vector.
