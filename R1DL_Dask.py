@@ -131,13 +131,10 @@ if __name__ == "__main__":
 
         # Start the inner loop: this learns a single atom.
         while num_iterations < max_iterations and delta > epsilon:
-            try:
-                _U_ = client.scatter(u_old, broadcast=True)
-                print('made it here')
-                print(_U_.result())
-                v = da.dot(_U_.result(),S).compute()
-            except:
-                exit('you still gotta figure it out')
+
+            _U_ = client.scatter(u_old, broadcast=True)
+            v = da.dot(_U_.result(),S).compute()
+
             #Grab the indices of the top R values in v for the sparse vector
             indices = np.argpartition(v, -R)[-R:]
 
@@ -152,7 +149,7 @@ if __name__ == "__main__":
             _V_ = client.scatter(sv,broadcast=True)
 
             # P1: Matrix-vector multiplication step. Computes u.
-            u_new = da.matmul(S,_V_.result())
+            u_new = da.dot(S,_V_.result())
 
             # Subtract off the mean and normalize.
             u_new = normalize(u_new).compute()
