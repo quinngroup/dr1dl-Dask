@@ -122,9 +122,9 @@ if __name__ == "__main__":
 
         #Create a dense random vector
         #Then subtracting off the mean an normalizing it
-        u_old = da.random.random(T)
-        u_old = normalize(u_old).compute()
-        print(u_old)
+        u_old = da.random.random(T).map_blocks(cp.array)
+        u_old = normalize(u_old)
+
         #Setting loop criteria
         num_iterations = 0
         delta = 2 * epsilon
