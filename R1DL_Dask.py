@@ -118,12 +118,12 @@ if __name__ == "__main__":
         #Let us randomly generate a integer, broadcast that int, and create a seed.
         seed = np.random.randint(max_iterations + 1, high = 4294967295)
         _SEED_ = client.scatter(seed, broadcast=True)
-        np.random.seed(seed)
+        np.random.seed(_SEED_.result())
 
         #Create a dense random vector
         #Then subtracting off the mean an normalizing it
         u_old = da.random.random(T).map_blocks(cp.array)
-        u_old = normalize(u_old)
+        u_old = normalize(u_old).compute()
 
         #Setting loop criteria
         num_iterations = 0
@@ -136,13 +136,11 @@ if __name__ == "__main__":
             v = da.dot(_U_.result(),S).compute()
 
             #Grab the indices of the top R values in v for the sparse vector
-            indices = np.argpartition(v, -R)[-R:]
+            indices = cp.asnumpy(np.argpartition(v, -R)[-R:])
 
-            #data = v[indices]
 
-            print('making the sparse vector')
             #let's make the sparse vector.
-            sv = sparse.COO(v[indices],data,shape=(P),sorted=False)
+            sv = sparse.COO(indices,cp.asnumpy(v[indices]),shape=(P),sorted=False)
             sv = da.from_array(sv)
             print('made the sparse vector')
             # Broadcast the sparse vector.
@@ -150,7 +148,7 @@ if __name__ == "__main__":
 
             # P1: Matrix-vector multiplication step. Computes u.
             u_new = da.dot(S,_V_.result())
-
+            print('SURPRISNGLY NO ERROR')
             # Subtract off the mean and normalize.
             u_new = normalize(u_new).compute()
 
