@@ -2,6 +2,7 @@ import argparse
 import numpy as np
 import os.path
 import cupy as cp
+import scipy.linalg as sla
 import sys
 import datetime
 import os
@@ -9,12 +10,12 @@ import psutil
 import sparse
 import operator
 
-from scipy.sparse import coo_matrix
+from cupyx.scipy.sparse import coo_matrix
 
 from dask.distributed import Client
 from dask.bag import read_text
 import dask.array as da
-import distributed
+
 
 def row_to_numpy(row):
 
@@ -28,11 +29,16 @@ def load_data(path, chunks):
 
     return da.stack(raw_bag,axis=0).map_blocks(cp.array)
 
-def normalize(dask_array):
+def dask_normalize(dask_array):
 
     dask_array -= dask_array.mean()
     dask_array /= da.linalg.norm(dask_array)
     return dask_array
+
+def sparse_normalize(coo_array):
+    coo_array -= coo_array.mean()
+    coo_array /= np.linalg.norm(coo_array)
+    return coo_array
 
 
 if __name__ == "__main__":
@@ -87,7 +93,7 @@ if __name__ == "__main__":
     # Read the data and convert it into a Dask Array.
     S = load_data(args['input'], chunks)
     if args['normalize']:
-        S = normalize(S)
+        S = dask_normalize(S)
 
 
     ##################################################################
@@ -123,7 +129,7 @@ if __name__ == "__main__":
         #Create a dense random vector
         #Then subtracting off the mean an normalizing it
         u_old = da.random.random(T).map_blocks(cp.array)
-        u_old = normalize(u_old).compute()
+        u_old = dask_normalize(u_old).compute()
 
         #Setting loop criteria
         num_iterations = 0
@@ -136,24 +142,26 @@ if __name__ == "__main__":
             v = da.dot(_U_.result(),S).compute()
 
             #Grab the indices of the top R values in v for the sparse vector
-            indices = cp.asnumpy(np.argpartition(v, -R)[-R:])
-
-
+            min = np.argpartition(v, -R)[-R]
+            v[v < v[min]] = 0
+            v = v.reshape((1,-1))
+            indices = v.nonzero()
+            
             #let's make the sparse vector.
-            sv = sparse.COO(indices,cp.asnumpy(v[indices]),shape=(P),sorted=False)
+            sv = coo_matrix((v[indices],indices))
             sv = da.from_array(sv)
-            print('made the sparse vector')
+
             # Broadcast the sparse vector.
             _V_ = client.scatter(sv,broadcast=True)
 
             # P1: Matrix-vector multiplication step. Computes u.
-            u_new = da.dot(S,_V_.result())
-            print('SURPRISNGLY NO ERROR')
+            u_new = da.dot(S,_V_.result()).compute()
+
             # Subtract off the mean and normalize.
-            u_new = normalize(u_new).compute()
+            u_new = dask_normalize(u_new)
 
             # Update for the next iteration.
-            delta = da.linalg.norm(u_old - u_new) #Should u_old be _U_?
+            delta = np.linalg.norm(u_old - u_new) #Should u_old be _U_?
             u_old = u_new
             num_iterations += 1
 
