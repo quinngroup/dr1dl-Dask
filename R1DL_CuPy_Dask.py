@@ -1,6 +1,7 @@
 import argparse
 import numpy as np
 import os.path
+import cupy as cp
 import scipy.linalg as sla
 import sys
 import datetime
@@ -9,7 +10,7 @@ import psutil
 import sparse
 import operator
 
-from scipy.sparse import coo_matrix
+from cupyx.scipy.sparse import coo_matrix
 
 from dask.distributed import Client
 from dask.bag import read_text
@@ -26,7 +27,7 @@ def load_data(path, chunks):
                 .str.strip() \
                 .map(row_to_numpy)
 
-    return da.stack(raw_bag,axis=0)
+    return da.stack(raw_bag,axis=0).map_blocks(cp.array)
 
 def dask_normalize(dask_array):
 
@@ -127,7 +128,7 @@ if __name__ == "__main__":
 
         #Create a dense random vector
         #Then subtracting off the mean an normalizing it
-        u_old = da.random.random(T)
+        u_old = da.random.random(T).map_blocks(cp.array)
         u_old = dask_normalize(u_old).compute()
 
         #Setting loop criteria
@@ -145,7 +146,7 @@ if __name__ == "__main__":
             v[v < v[min]] = 0
             v = v.reshape((1,-1))
             indices = v.nonzero()
-
+            
             #let's make the sparse vector.
             sv = coo_matrix((v[indices],indices))
             sv = da.from_array(sv)
